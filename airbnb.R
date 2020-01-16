@@ -1,12 +1,80 @@
-library (sqldf)
+################################################################################
+######### Berlin Airbnb Analysis code #########
+################################################################################
+
+
+################################################################################
+# Airbnb Word Cloud code
+################################################################################
 
 #Set directory
 
 setwd("E:\\Purdue\\Fall 1\\R for Analytics\\R Shiny Project")
 
+
+###Word cloud:
+
+library("tm")
+library("SnowballC")
+library("wordcloud")
+library("RColorBrewer")
+
 #Load data
 
 airbnb <- read.csv('listings_summary.csv', stringsAsFactors = F)
+
+#Wordcloud for transit
+
+rulesCorpus <- Corpus(VectorSource(airbnb$transit))
+rulesCorpus <- tm_map(rulesCorpus, content_transformer(tolower))
+rulesCorpus <- tm_map(rulesCorpus, removePunctuation)
+rulesCorpus <- tm_map(rulesCorpus, removeWords, c("berlin","und","ist","die","the","is","mit","der","das","zum","ein","can","pleas","will","smoke")) 
+
+#revCorpus <- tm_map(revCorpus, PlainTextDocument)
+rulesCorpus <- tm_map(rulesCorpus, removeWords, stopwords('english'))
+
+rulesCorpus <- tm_map(rulesCorpus, stemDocument)
+wordcloud(rulesCorpus, max.words = 200, random.order = FALSE,colors=brewer.pal(8, "Dark2"), rot.per=0.35)
+
+
+#Wordcloud for transit
+
+rulesCorpus <- Corpus(VectorSource(airbnb$house_rules))
+rulesCorpus <- tm_map(rulesCorpus, content_transformer(tolower))
+rulesCorpus <- tm_map(rulesCorpus, removePunctuation)
+rulesCorpus <- tm_map(rulesCorpus, removeWords, c("berlin","und","ist","die","the","is","mit","der","das","zum","ein","can","pleas","will","smoke")) 
+
+#revCorpus <- tm_map(revCorpus, PlainTextDocument)
+rulesCorpus <- tm_map(rulesCorpus, removeWords, stopwords('english'))
+
+rulesCorpus <- tm_map(rulesCorpus, stemDocument)
+wordcloud(rulesCorpus, max.words = 200, random.order = FALSE,colors=brewer.pal(8, "Dark2"), rot.per=0.35)
+
+
+################################################################################
+# Airbnb Price Analysis code
+################################################################################
+
+library(shiny)
+library(shinythemes)
+library(ggplot2)
+library (sqldf)
+library(caret)
+library(Metrics)
+library(randomForest)
+library(gbm)
+
+library(dplyr)
+library(lubridate) 
+
+
+#Set directory
+
+# setwd("E:\\Purdue\\Fall 1\\R for Analytics\\R Shiny Project")
+
+#Load data
+
+# airbnb <- read.csv('listings_summary.csv', stringsAsFactors = F)
 
 #List of columns to be dropped
 
@@ -204,10 +272,6 @@ for (i in median_cols){
   airbnb[[i]][is.na(airbnb[[i]])] <- median(airbnb[[i]], na.rm = T)
 }
 
-########### Date ###########
-
-# host_since
-# first_review
 
 ########### Factor ###########
 
@@ -255,6 +319,14 @@ for (i in mode_cols){
   airbnb[[i]][is.na(airbnb[[i]])] <- getmode(airbnb[[i]])
 }
 
+##### Clean cancellation_policy data #####
+
+airbnb$cancellation_policy <- ifelse(airbnb$cancellation_policy == "strict_14_with_grace_period", "Strict_14_days", airbnb$cancellation_policy)
+
+airbnb$cancellation_policy <- ifelse(airbnb$cancellation_policy == "super_strict_30", "Strict_30_days", airbnb$cancellation_policy)
+
+airbnb$cancellation_policy <- ifelse(airbnb$cancellation_policy == "super_strict_60", "Strict_60_days", airbnb$cancellation_policy)
+
 
 ###### Convert factors ######
 
@@ -287,7 +359,7 @@ airbnb$host_response_time <- factor(airbnb$host_response_time,
 
 #### Breakdown top amenities into separate columns ####
 
-library(sqldf)
+# library(sqldf)
 
 airbnb <- sqldf("select *,
 							case when amenities like '%Wifi%' then 'Yes' else 'No' end as Wifi,
@@ -333,10 +405,6 @@ for (i in amenities){
 }
 
 
-#### Drop amenities and host_verifications ####
-
-airbnb$amenities <- NULL
-airbnb$host_verifications <- NULL
 
 
 #### Convert True/False into 1s and 0s ####
@@ -354,8 +422,8 @@ for (i in true_false_cols) {
 airbnb[[i]] <- (ifelse(airbnb[[i]]=="t",1,0))
 }
 
-airbnb$host_since <- as.Date(airbnb$host_since)
-airbnb$first_review <- as.Date(airbnb$first_review)
+airbnb$host_since <- as.Date(airbnb$host_since, origin = "1970-01-01")
+airbnb$first_review <- as.Date(airbnb$first_review,origin = "1970-01-01")
 
 max_date <- as.numeric(max(airbnb$host_since, na.rm = T))
 
@@ -373,17 +441,65 @@ airbnb$first_review <- as.Date(ifelse(is.na(airbnb$first_review), airbnb$host_si
 
 ######## Final data for visualization ########
 
-airbnb2 <- airbnb
+airbnb2 <- airbnb[1:49]
 
 for (i in true_false_cols){
   airbnb2[[i]] <- as.factor(airbnb2[[i]])
 }
 
-# for (i in names(airbnb2)[48:60]){
-  # airbnb2[[i]] <- as.factor(airbnb2[[i]])
-# }
+airbnb2 <- sqldf("select *,
+							case when amenities like '%Wifi%' then 1 else 0 end as Wifi,
+							case when amenities like '%TV%' then 1 else 0 end as tv,
+							case when amenities like '%Internet%' then 1 else 0 end as Internet,
+							case when amenities like '%Kitchen%' then 1 else 0 end as Kitchen,
+							case when amenities like '%Heating%' then 1 else 0 end as Heating,
+							case when amenities like '%Washer%' then 1 else 0 end as Washer,
+							case when amenities like '%Refrigerator%' then 1 else 0 end as Refrigerator,
+							case when amenities like '%Dishwasher%' then 1 else 0 end as Dishwasher,
+							case when amenities like '%Dryer%' then 1 else 0 end as Dryer,
+							case when amenities like '%Microwave%' then 1 else 0 end as Microwave,
+							case when amenities like '%Stove%' then 1 else 0 end as Stove,
+							case when amenities like '%Paid parking on premises%' then 1 else 0 end as Premise_Part,
+							case when amenities like '%Paid parking off premises%' then 1 else 0 end as Off_Premise_Part
+						from airbnb2")
+
+#### Drop amenities and host_verifications ####
+
+airbnb$amenities <- NULL
+airbnb$host_verifications <- NULL
+
+airbnb2$amenities <- NULL
+airbnb2$host_verifications <- NULL
+
+
+for (i in names(airbnb2)[48:60]){
+airbnb2[[i]] <- as.factor(airbnb2[[i]])
+}
+
+
 
 write.csv(airbnb2, "airbnb_cleaned_data.csv", row.names = F)
+
+###### EDA and graphs
+
+dev.off()
+
+par(mfrow=c(3,3), bg="white", fg="black",cex.lab=1.2, cex.axis=.9, cex.main=1.5)
+amenities<-c("Wifi", "tv", "Internet", "Kitchen", "Heating", "Washer", "Refrigerator", "Dishwasher", "Dryer")
+for(i in amenities){
+  plot(airbnb2[,i], main=paste0("Plot of ", names(airbnb2[i])), xlab=names(airbnb2[i]), col="gold")
+}
+
+
+###Geo charts:
+
+par(mfrow=c(1,1))
+
+dev.off()
+
+ggplot(data=subset(airbnb,price<200))+geom_point(aes(x=latitude, y=longitude, color=price)) + scale_colour_gradientn(colours = terrain.colors(10))+ ggtitle("Price per night across Berlin Airbnb listings") + theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(data=subset(airbnb,price<200))+geom_point(aes(x=latitude, y=longitude, color=neighbourhood_group_cleansed))+ ggtitle("Distribution of listings across Berlin") + theme(plot.title = element_text(hjust = 0.5))
 
 
 #### Select X predictors and Y ####
@@ -475,8 +591,6 @@ lm_model = lm(formula = y ~ .,data = train)
 
 summary(lm_model)
 
-# Adjusted R-squared:  0.5035
-
 
 y_lm_train = predict(lm_model, train)
 
@@ -549,14 +663,14 @@ y_rf_train = predict(rf, train)
 rmse.rf<-rmse(train$y, y_rf_train)
 print(rmse.rf)
 
-# 18.65546
+# 18.67953
 
 y_rf_pred = predict(rf, test)
 
 rmse.rf<-rmse(test$y, y_rf_pred)
 print(rmse.rf)
 
-# 22.60223
+# 22.62052
 
 
 ##################### GBM #####################
@@ -579,9 +693,9 @@ best.iter <- gbm.perf(gbm.gbm, method="cv")
 
 print(best.iter)
 
-# 531
+# 633
 
-train.predict <- predict.gbm(object=gbm.gbm, newdata=train, 531)
+train.predict <- predict.gbm(object=gbm.gbm, newdata=train, best.iter)
 
 
 rmse.gbm<-rmse(train$y, train.predict)
@@ -590,13 +704,14 @@ print(rmse.gbm)
 # 22.05521
 
 
-y_gbm_pred <- predict.gbm(object=gbm.gbm, newdata=test, 531)
+y_gbm_pred <- predict.gbm(object=gbm.gbm, newdata=test, best.iter)
 
 rmse.gbm<-rmse(test$y, y_gbm_pred)
 print(rmse.gbm)
 
-# 22.60675
+# 22.57989
 
+#### Sample prediction ####
 
 test2 <- list(room_type = "Private room",
               cleaning_fee = 30,
@@ -605,11 +720,10 @@ test2 <- list(room_type = "Private room",
               beds = 2,
               bathrooms = 1.0,
               cancellation_policy = "strict_14_with_grace_period",
-              tv = 1,
-              Internet = 0)
+              tv = "Yes",
+              Internet = "No")
 
 test_data2 <- data.frame(lapply(test2, function(x) t(data.frame(x))))
 
 y_pred_final = predict.gbm(gbm.gbm,test_data2, best.iter)
 
-y_pred_final
