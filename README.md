@@ -1,4 +1,4 @@
-Airbnb new listing price predictor system
+Airbnb new listing price predictor system (https://www.youtube.com/watch?v=PoKIyEeI2Yk&feature=youtu.be)
 
 Jeffrey Samuel, Mehul Zawar, Shivendra Kumar, Shruti Gupta, Siddharth Harisankar
 
