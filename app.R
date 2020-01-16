@@ -1,14 +1,17 @@
-library (sqldf)
-
-#Set directory
-
-setwd("E:\\Purdue\\Fall 1\\R for Analytics\\R Shiny Project")
-
 #Load data
 
-airbnb <- read.csv('listings_summary.csv', stringsAsFactors = F)
+library(shiny)
+library(shinythemes)
+library(ggplot2)
+library (sqldf)
+library(caret)
+library(Metrics)
+library(randomForest)
+library(gbm)
 
-#List of columns to be dropped
+# setwd("E:\\Purdue\\Fall 1\\R for Analytics\\R Shiny Project\\Shiny")
+# airbnb <- read.csv('E:\\Purdue\\Fall 1\\R for Analytics\\R Shiny Project\\Shiny\\listings_summary.csv', stringsAsFactors = F)
+airbnb <- read.csv('listings_summary.csv', stringsAsFactors = F)
 
 drop_cols <-
   c(
@@ -52,8 +55,6 @@ drop_cols <-
     'jurisdiction_names'
   )
 
-
-
 #Drop columns from data
 
 for (i in drop_cols){
@@ -74,75 +75,6 @@ for (i in 1:length(names)){
   
 }
 
-#Load Data Quality to inspect NAs
-
-# source("DataQualityReport.R")
- 
-# DataQualityReport(airbnb)
-
-
-
-#                        Attributes    Type NumberMissing PercentComplete   Min         Avg   Median       Max NumberLevels
-# 1                              id numeric             0          100.00  2015 15715604.77 16866381  29867352            -
-# 2                            name UNKNOWN            59           99.74     -           -        -         -            - # Unknown
-# 3                         host_id numeric             0          100.00  2217 54033548.02 31267110 224508134            -
-# 4                      host_since UNKNOWN            26           99.88     -           -        -         -            - # Date (Median)
-# 5                   host_location UNKNOWN           116           99.49     -           -        -         -            -
-# 6              host_response_time UNKNOWN         12894           42.83     -           -        -         -            - # NA and blank UNKNOWN
-# 7              host_response_rate UNKNOWN         12895           42.82     -           -        -         -            - # Drop (58% NAs and 31% are 100%)
-# 8            host_acceptance_rate UNKNOWN         22552            0.00     -           -        -         -            - # Drop
-# 9               host_is_superhost UNKNOWN            26           99.88     -           -        -         -            - # False (Mode)
-# 10             host_neighbourhood UNKNOWN          5094           77.41     -           -        -         -            - # Unknown
-# 11            host_listings_count numeric            26           99.88     0        2.33        1      1676            - # Drop since calculated_host_listings_count gives the result
-# 12             host_verifications UNKNOWN             0          100.00     -           -        -         -            -
-# 13           host_has_profile_pic UNKNOWN            26           99.88     -           -        -         -            - # True (Mode)
-# 14         host_identity_verified UNKNOWN            26           99.88     -           -        -         -            - # False (Mode)
-# 15                         street UNKNOWN             0          100.00     -           -        -         -            -
-# 16         neighbourhood_cleansed UNKNOWN             0          100.00     -           -        -         -            - # Drop
-# 17   neighbourhood_group_cleansed UNKNOWN             0          100.00     -           -        -         -            -
-# 18                           city UNKNOWN             5           99.98     -           -        -         -            - # Drop
-# 19                          state UNKNOWN            84           99.63     -           -        -         -            - # Drop
-# 20                        zipcode UNKNOWN           656           97.09     -           -        -         -            - # row_number impute
-# 21                       latitude numeric             0          100.00 52.35       52.51    52.51     52.65            -
-# 22                      longitude numeric             0          100.00  13.1       13.41    13.42     13.76            -
-# 23              is_location_exact UNKNOWN             0          100.00     -           -        -         -            -
-# 24                  property_type UNKNOWN             0          100.00     -           -        -         -            -
-# 25                      room_type UNKNOWN             0          100.00     -           -        -         -            -
-# 26                   accommodates numeric             0          100.00     1        2.64        2        16            -
-# 27                      bathrooms numeric            32           99.86     0        1.09        1       8.5            - # Median
-# 28                       bedrooms numeric            18           99.92     0        1.16        1        12            - # Median
-# 29                           beds numeric            40           99.82     0        1.62        1        22            - # Median
-# 30                       bed_type UNKNOWN             0          100.00     -           -        -         -            -
-# 31                      amenities UNKNOWN             0          100.00     -           -        -         -            -
-# 32                    square_feet numeric         22106            1.98     0       465.4    403.5      4639            - # Drop
-# 33                          price UNKNOWN             0          100.00     -           -        -         -            -
-# 34               security_deposit UNKNOWN          9361           58.49     -           -        -         -            - # 0
-# 35                   cleaning_fee UNKNOWN          7146           68.31     -           -        -         -            - # 0
-# 36                guests_included numeric             0          100.00     1        1.33        1        16            -
-# 37                   extra_people UNKNOWN             0          100.00     -           -        -         -            -
-# 38                 minimum_nights numeric             0          100.00     1        7.16        2      5000            -
-# 39                 maximum_nights numeric             0          100.00     1   103050.46     1124 999999999            -
-# 40               calendar_updated UNKNOWN             0          100.00     -           -        -         -            - # Drop
-# 41                availability_30 numeric             0          100.00     0        4.94        0        30            -
-# 42                availability_60 numeric             0          100.00     0       11.15        0        60            -
-# 43                availability_90 numeric             0          100.00     0       20.02        0        90            -
-# 44               availability_365 numeric             0          100.00     0       79.85        4       365            -
-# 45              number_of_reviews numeric             0          100.00     0       17.84        5       498            -
-# 46                   first_review UNKNOWN          3914           82.64     -           -        -         -            - # host_since (and rename it to listing_start_date)
-# 47                    last_review UNKNOWN          3908           82.67     -           -        -         -            - # Drop
-# 48           review_scores_rating numeric          4389           80.54    20       94.41       97       100            - # Median
-# 49         review_scores_accuracy numeric          4414           80.43     2        9.66       10        10            - # Median
-# 50      review_scores_cleanliness numeric          4411           80.44     2        9.32       10        10            - # Median
-# 51          review_scores_checkin numeric          4432           80.35     2        9.71       10        10            - # Median
-# 52    review_scores_communication numeric          4418           80.41     2        9.73       10        10            - # Median
-# 53         review_scores_location numeric          4431           80.35     2        9.51       10        10            - # Median
-# 54            review_scores_value numeric          4435           80.33     2        9.41       10        10            - # Median
-# 55               instant_bookable UNKNOWN             0          100.00     -           -        -         -            -
-# 56            cancellation_policy UNKNOWN             0          100.00     -           -        -         -            -
-# 57 calculated_host_listings_count numeric             0          100.00     1        1.92        1        45            -
-# 58              reviews_per_month numeric          3914           82.64  0.01        1.14     0.54     36.67            - # Median
-
-
 #Removing further columns from data after making NAs
 
 drop_cols2 <- c('host_location','host_response_rate','host_acceptance_rate','host_listings_count','city','state','square_feet','last_review','neighbourhood_cleansed')
@@ -152,14 +84,6 @@ for (i in drop_cols2){
 }
 
 ########### Numeric Cleaning ###########
-
-# extra_people
-
-# price
-
-# security_deposit
-# cleaning_fee
-
 
 num_cols <-
   c(
@@ -185,41 +109,26 @@ airbnb$cleaning_fee[is.na(airbnb$cleaning_fee)] <- 0
 
 
 median_cols <-
-c(
- 'bathrooms'
-,'bedrooms'
-,'beds'
-,'review_scores_rating'
-,'review_scores_accuracy'
-,'review_scores_cleanliness'
-,'review_scores_checkin'
-,'review_scores_communication'
-,'review_scores_location'
-,'review_scores_value'
-,'reviews_per_month'
-
-)
+  c(
+    'bathrooms'
+    ,'bedrooms'
+    ,'beds'
+    ,'review_scores_rating'
+    ,'review_scores_accuracy'
+    ,'review_scores_cleanliness'
+    ,'review_scores_checkin'
+    ,'review_scores_communication'
+    ,'review_scores_location'
+    ,'review_scores_value'
+    ,'reviews_per_month'
+    
+  )
 
 for (i in median_cols){
   airbnb[[i]][is.na(airbnb[[i]])] <- median(airbnb[[i]], na.rm = T)
 }
 
-########### Date ###########
-
-# host_since
-# first_review
-
 ########### Factor ###########
-
-### Cleaning
-
-# 2                            name UNKNOWN            59           99.74     -           -        -         -            - # Unknown
-# 6              host_response_time UNKNOWN         12894           42.83     -           -        -         -            - # Unknown
-# 10             host_neighbourhood UNKNOWN          5094           77.41     -           -        -         -            - # Unknown
-
-# 9               host_is_superhost UNKNOWN            26           99.88     -           -        -         -            - # False (Mode)
-# 13           host_has_profile_pic UNKNOWN            26           99.88     -           -        -         -            - # True (Mode)
-# 14         host_identity_verified UNKNOWN            26           99.88     -           -        -         -            - # False (Mode)
 
 ##### Imputing NAs in character vectors using 'Unknown' #####
 
@@ -244,35 +153,36 @@ getmode <- function(v) {
 }
 
 mode_cols <-
-c(
- 'host_is_superhost'
-,'host_has_profile_pic'
-,'host_identity_verified'
-)
+  c(
+    'host_is_superhost'
+    ,'host_has_profile_pic'
+    ,'host_identity_verified'
+  )
 
 
 for (i in mode_cols){
   airbnb[[i]][is.na(airbnb[[i]])] <- getmode(airbnb[[i]])
 }
 
+##### Clean cancellation_policy data #####
+
+airbnb$cancellation_policy <- ifelse(airbnb$cancellation_policy == "strict_14_with_grace_period", "Strict_14_days", airbnb$cancellation_policy)
+
+airbnb$cancellation_policy <- ifelse(airbnb$cancellation_policy == "super_strict_30", "Strict_30_days", airbnb$cancellation_policy)
+
+airbnb$cancellation_policy <- ifelse(airbnb$cancellation_policy == "super_strict_60", "Strict_60_days", airbnb$cancellation_policy)
+
 
 ###### Convert factors ######
 
-# host_response_time (ordered)
-# neighbourhood_group_cleansed
-# property_type
-# room_type
-# bed_type
-# cancellation_policy
-
 factor_cols <-
-c(
- 'neighbourhood_group_cleansed'
-,'property_type'
-,'room_type'
-,'bed_type'
-,'cancellation_policy'
-)
+  c(
+    'neighbourhood_group_cleansed'
+    ,'property_type'
+    ,'room_type'
+    ,'bed_type'
+    ,'cancellation_policy'
+  )
 
 
 for (i in factor_cols){
@@ -282,12 +192,10 @@ for (i in factor_cols){
 #### Converting host_response_time into ordered factor ####
 
 airbnb$host_response_time <- factor(airbnb$host_response_time, 
-                                       levels = c("within an hour","within a few hours","within a day","a few days or more","Unknown"),
-                                       ordered = T)
+                                    levels = c("within an hour","within a few hours","within a day","a few days or more","Unknown"),
+                                    ordered = T)
 
 #### Breakdown top amenities into separate columns ####
-
-library(sqldf)
 
 airbnb <- sqldf("select *,
 							case when amenities like '%Wifi%' then 'Yes' else 'No' end as Wifi,
@@ -304,9 +212,6 @@ airbnb <- sqldf("select *,
 							case when amenities like '%Paid parking on premises%' then 'Yes' else 'No' end as Premise_Part,
 							case when amenities like '%Paid parking off premises%' then 'Yes' else 'No' end as Off_Premise_Part
 						from airbnb")
-
-
-str(airbnb)
 
 #### Factor amenities ####
 
@@ -338,24 +243,23 @@ for (i in amenities){
 airbnb$amenities <- NULL
 airbnb$host_verifications <- NULL
 
-
 #### Convert True/False into 1s and 0s ####
 
 true_false_cols <- 
-c(
- 'host_is_superhost'
-,'host_has_profile_pic'
-,'host_identity_verified'
-,'is_location_exact'
-,'instant_bookable'
-)
+  c(
+    'host_is_superhost'
+    ,'host_has_profile_pic'
+    ,'host_identity_verified'
+    ,'is_location_exact'
+    ,'instant_bookable'
+  )
 
 for (i in true_false_cols) {
-airbnb[[i]] <- (ifelse(airbnb[[i]]=="t",1,0))
+  airbnb[[i]] <- (ifelse(airbnb[[i]]=="t",1,0))
 }
 
-airbnb$host_since <- as.Date(airbnb$host_since)
-airbnb$first_review <- as.Date(airbnb$first_review)
+airbnb$host_since <- as.Date(airbnb$host_since, origin = "1970-01-01")
+airbnb$first_review <- as.Date(airbnb$first_review,origin = "1970-01-01")
 
 max_date <- as.numeric(max(airbnb$host_since, na.rm = T))
 
@@ -369,57 +273,6 @@ airbnb[["host_since"]][is.na(airbnb[["host_since"]])] <- final_date
 
 
 airbnb$first_review <- as.Date(ifelse(is.na(airbnb$first_review), airbnb$host_since, airbnb$first_review), origin = "1970-01-01")
-
-
-######## Final data for visualization ########
-
-airbnb2 <- airbnb
-
-for (i in true_false_cols){
-  airbnb2[[i]] <- as.factor(airbnb2[[i]])
-}
-
-# for (i in names(airbnb2)[48:60]){
-  # airbnb2[[i]] <- as.factor(airbnb2[[i]])
-# }
-
-write.csv(airbnb2, "airbnb_cleaned_data.csv", row.names = F)
-
-
-#### Select X predictors and Y ####
-
-# [1] "id"                             "name"                          
-# [3] "host_id"                        "host_since"                    
-# [5] "host_response_time"             "host_is_superhost"             
-# [7] "host_neighbourhood"             "host_has_profile_pic"          
-# [9] "host_identity_verified"         "street"                        
-# [11] "neighbourhood_group_cleansed"   "zipcode"                       
-# [13] "latitude"                       "longitude"                     
-# [15] "is_location_exact"              "property_type"                 
-# [17] "room_type"                      "accommodates"                  
-# [19] "bathrooms"                      "bedrooms"                      
-# [21] "beds"                           "bed_type"                      
-# [23] "price"                          "security_deposit"              
-# [25] "cleaning_fee"                   "guests_included"               
-# [27] "extra_people"                   "minimum_nights"                
-# [29] "maximum_nights"                 "calendar_updated"              
-# [31] "availability_30"                "availability_60"               
-# [33] "availability_90"                "availability_365"              
-# [35] "number_of_reviews"              "first_review"                  
-# [37] "review_scores_rating"           "review_scores_accuracy"        
-# [39] "review_scores_cleanliness"      "review_scores_checkin"         
-# [41] "review_scores_communication"    "review_scores_location"        
-# [43] "review_scores_value"            "instant_bookable"              
-# [45] "cancellation_policy"            "calculated_host_listings_count"
-# [47] "reviews_per_month"              "Wifi"                          
-# [49] "tv"                             "Internet"                      
-# [51] "Kitchen"                        "Heating"                       
-# [53] "Washer"                         "Refrigerator"                  
-# [55] "Dishwasher"                     "Dryer"                         
-# [57] "Microwave"                      "Stove"                         
-# [59] "Premise_Part"                   "Off_Premise_Part"   
-
-#### Y and X data for Regression ####
 
 d <- airbnb
 
@@ -436,94 +289,16 @@ capOutlier <- function(x){
   return(x)
 }
 
-# for (i in names(d[sapply(d, is.numeric)])) {
-
-  # d[[i]]=capOutlier(d[[i]])
-
-# }
-
 d$y <- capOutlier(d$y)
-
-summary(d$y)
-
-boxplot(d$y)
-
-library(caret)
-
-################################################################################
-# Data partitioning
-################################################################################
-
-set.seed(42) # set a seed so you can replicate your results
-
-# identify records that will be used in the training set. Here we are doing a
-# 80/20 train-test split
-inTrain <- createDataPartition(y = d$y,   # outcome variable
-                               p = .8,   # % of training data you want
-                               list = F)
-# create your partitions
-train <- d[inTrain,]  # training data set
-test <- d[-inTrain,]  # test data set
-
-################################################################################
-# Modeling
-################################################################################
-
-##### Linear Model
-
-lm_model = lm(formula = y ~ .,data = train)
-
-summary(lm_model)
-
-# Adjusted R-squared:  0.5035
-
-
-y_lm_train = predict(lm_model, train)
-
-library(Metrics)
-
-rmse.lm<-rmse(train$y, y_lm_train)
-print(rmse.lm)
-
-# 22.64719
-
-y_lm_pred = predict(lm_model, test)
-
-rmse.lm<-rmse(test$y, y_lm_pred)
-print(rmse.lm)
-
-# 22.89644
-
-library(randomForest)
-set.seed(42)
-
-rf = randomForest(x = train[-1],
-                         y = train$y,
-                         ntree = 500)
-
-
-rf_imp<-data.frame(rf$importance)
-
-rf_imp$variable <- rownames(rf_imp)
-
-rownames(rf_imp) <- NULL
-
-names(rf_imp) <- c("importance","variable")
-
-rf_imp<-rf_imp[order(-rf_imp$importance),]
-
-
-View(rf_imp)
 
 ##### Taking only important variables for Shiny #####
 
 cols <- c("y","room_type","cleaning_fee",
-              "bedrooms","neighbourhood_group_cleansed",
-              "beds","bathrooms","cancellation_policy",
-              "tv","Internet")
+          "bedrooms","neighbourhood_group_cleansed",
+          "beds","bathrooms","cancellation_policy",
+          "tv","Internet")
 
 d2 <- d[cols]
-
 
 set.seed(42) # set a seed so you can replicate your results
 
@@ -536,32 +311,7 @@ inTrain <- createDataPartition(y = d2$y,   # outcome variable
 train <- d2[inTrain,]  # training data set
 test <- d2[-inTrain,]  # test data set
 
-
-set.seed(42)
-
-rf = randomForest(x = train[-1],
-                  y = train$y,
-                  ntree = 500)
-
-y_rf_train = predict(rf, train)
-
-
-rmse.rf<-rmse(train$y, y_rf_train)
-print(rmse.rf)
-
-# 18.65546
-
-y_rf_pred = predict(rf, test)
-
-rmse.rf<-rmse(test$y, y_rf_pred)
-print(rmse.rf)
-
-# 22.60223
-
-
-##################### GBM #####################
-
-library(gbm)
+lm_model = lm(formula = y ~ .,data = train)
 
 set.seed(42)
 gbm.gbm <- gbm(y ~ .
@@ -577,39 +327,165 @@ gbm.gbm <- gbm(y ~ .
 )
 best.iter <- gbm.perf(gbm.gbm, method="cv")
 
-print(best.iter)
+# train.predict <- predict.gbm(object=gbm.gbm, newdata=train, best.iter)
+# 
+# y_gbm_pred <- predict.gbm(object=gbm.gbm, newdata=test, best.iter)
 
-# 531
+# unique(d2$cancellation_policy)
 
-train.predict <- predict.gbm(object=gbm.gbm, newdata=train, 531)
+# cal <- read.csv('E:\\Purdue\\Fall 1\\R for Analytics\\R Shiny Project\\Shiny\\calendar_summary.csv',stringsAsFactors = F)
 
-
-rmse.gbm<-rmse(train$y, train.predict)
-print(rmse.gbm)
-
-# 22.05521
+cal <- read.csv('calendar_summary.csv',stringsAsFactors = F)
 
 
-y_gbm_pred <- predict.gbm(object=gbm.gbm, newdata=test, 531)
+################################################################################
 
-rmse.gbm<-rmse(test$y, y_gbm_pred)
-print(rmse.gbm)
+cal <- subset(cal,available =="t")
 
-# 22.60675
+cal$date <- as.Date(cal$date)
+
+cal['month'] <- months(cal$date)
+
+cal_agg <- sqldf("select listing_id,month,count(*) as num_book from cal where month not in ('November','October') group by listing_id,month ")
+
+cal_agg['occupancy'] <- cal_agg$num_book / 31
+
+cal_cat <- sqldf("select cal_agg.*,room_type,neighbourhood_group_cleansed,cancellation_policy
+      from cal_agg join airbnb on cal_agg.listing_id = airbnb.id")
+
+month_agg <- sqldf("select neighbourhood_group_cleansed,month,avg(occupancy) as occupancy
+          from cal_cat group by neighbourhood_group_cleansed,month
+       union
+         select room_type,month,avg(occupancy) 
+        from cal_cat group by room_type,month")
+
+month_agg$month =factor(month_agg$month,levels=c("December","January","February","March","April","May","June","July","August","September"))
+
+################################################################################
+
+ui <- fluidPage(
+  theme = shinytheme("superhero"),
+  titlePanel("Berlin Airbnb Listings Price Estimator"),
+  fluidRow(
+    column(
+      width = 2, 
+      selectInput('nbhood', 'Neighbourhood',choices = unique(d2$neighbourhood_group_cleansed)),
+      hr()),
+    column(
+      width=1,
+      radioButtons("tv", label = ("TV"),choices = c('Yes','No'), selected = "Yes"),
+      hr()),
+    column(
+      width=1,
+      radioButtons("Internet", label = ("Internet"),choices = c('Yes','No'), selected = "Yes"),
+      hr()),
+    column(
+      width=2,  
+      sliderInput('cleaning_fee', 'Cleaning Fee',min = 0, max = 30,value=10),
+      hr()),
+    column(
+      width = 2,  
+      sliderInput('bedrooms', 'Number of Bedrooms',min = 0, max = 5,value=2),
+      hr()),
+    column(
+      width=2,
+      sliderInput('beds', 'Number of Beds',min = 0, max = 4,value=2),
+      hr()),
+    column(
+      width = 2,
+      sliderInput('bathrooms', 'Number of Bathrooms',min = 0, max = 3,value=1),
+      hr())
+  ),
+  
+  fluidRow( 
+    
+    column(
+      width = 2,
+      selectInput('room_type', 'Room Type',choices = unique(d2$room_type)),
+      hr()),
+    column(
+      width = 2,
+      selectInput('cancellation_policy', 'Cancellation Policy',choices = unique(d2$cancellation_policy)),
+      hr()),
+    column(
+      width = 2,
+      actionButton("click", "Update"),
+      hr()),
+    
+    column(
+      width = 6,
+      verbatimTextOutput("Prediction"),
+      hr())
+    
+  ),
+  
+  fluidRow(
+    column(width = 4, plotOutput("gmap_all",height="350")),
+    column(width = 4, plotOutput("gmap_neigh",height="350")),
+	column(width = 4, plotOutput("gbar",height="350"))
+	)
+)
 
 
-test2 <- list(room_type = "Private room",
-              cleaning_fee = 30,
-              bedrooms = 1.0,
-              neighbourhood_group_cleansed = "Mitte",
-              beds = 2,
-              bathrooms = 1.0,
-              cancellation_policy = "strict_14_with_grace_period",
-              tv = 1,
-              Internet = 0)
+server <- function(input, output,session){
+  
+  test_data2 <- eventReactive(input$click,{
+    data.frame(
+  room_type = input$room_type,
+  cleaning_fee = input$cleaning_fee,
+  bedrooms = input$bedrooms,
+  neighbourhood_group_cleansed = input$nbhood,
+  beds = input$beds,
+  bathrooms = input$bathrooms,
+  cancellation_policy = input$cancellation_policy,
+  tv = input$tv,
+  Internet = input$Internet)})
 
-test_data2 <- data.frame(lapply(test2, function(x) t(data.frame(x))))
 
-y_pred_final = predict.gbm(gbm.gbm,test_data2, best.iter)
+  y_pred_final <- eventReactive(input$click,{ predict.gbm(object=gbm.gbm,test_data2(),best.iter)})
+  
+  airbnb_d <- eventReactive(input$click, {subset(airbnb,airbnb$neighbourhood_group_cleansed==input$nbhood)})
+  
+  lat <- eventReactive(input$click, {as.numeric(unlist(subset(airbnb["latitude"],airbnb$neighbourhood_group_cleansed==input$nbhood)))})
+  
+  long <- eventReactive(input$click, {as.numeric(unlist(subset(airbnb["longitude"],airbnb$neighbourhood_group_cleansed==input$nbhood)))})
+  
+  heading <- eventReactive(input$click, {input$nbhood})
+  
+  data_gg_data <- eventReactive(input$click, {subset(month_agg,neighbourhood_group_cleansed==input$nbhood)})
+  
+  data_gg_x <- eventReactive(input$click, {subset(month_agg,neighbourhood_group_cleansed==input$nbhood)[["month"]]})
+  
+  data_gg_y <- eventReactive(input$click, {subset(month_agg,neighbourhood_group_cleansed==input$nbhood)[["occupancy"]]})
 
-y_pred_final
+  output$Prediction <- renderText(print(paste("Estimated Price:",round(y_pred_final(),2),"Euros")))
+
+  output$gmap_all <- renderPlot ({
+    ggplot(data=subset(airbnb,price<400))+
+      geom_point(aes(x=latitude, y=longitude, color=neighbourhood_group_cleansed)) + 
+      xlim(52.4,52.65) + 
+      ylim(13.1,13.75) +
+      theme(legend.position = "none") +
+      ggtitle('Berlin City listings across Neighbourhood') +
+      theme(plot.title = element_text(hjust = 0.5))
+  })
+  output$gmap_neigh <- renderPlot({
+    ggplot(data= airbnb_d())+
+      geom_point(aes(x= lat(),y=long()),colour="blue") +
+      ggtitle(paste("Existing listings in Neighbourhood -",heading())) +
+      xlim(52.4,52.65) +
+      ylim(13.1,13.75) +
+      xlab('latitude') + ylab('longitude') +
+      theme(plot.title = element_text(hjust = 0.5))
+  })
+  
+  output$gbar <- renderPlot({
+  ggplot(data=data_gg_data(),aes(x=data_gg_x(),y=data_gg_y())) + geom_bar(stat="identity", fill = "blue") + 
+      scale_x_discrete(limits = c("December","January","February","March","April","May","June","July","August","September")) +
+      ggtitle(paste("Occupancy rates for",heading())) + xlab("Month") + ylab ("Occupancy Rate") +
+      theme(plot.title = element_text(hjust = 0.5))
+  })
+
+}
+
+shinyApp(ui = ui, server = server)
